@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pesaflow-api
+    runtime: node
+    buildCommand: npm ci && npm --prefix packages/backend run prisma:generate && npm --prefix packages/backend run build
+    startCommand: npm --prefix packages/backend start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: PORT
+        value: 10000

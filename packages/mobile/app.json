@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "pesaflow-mobile",
+    "slug": "pesaflow-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {},
+    "android": {
+      "package": "com.pesaflow.mobile"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
