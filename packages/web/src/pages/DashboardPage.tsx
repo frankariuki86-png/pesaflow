@@ -22,6 +22,14 @@ type Direction = "INCOME" | "EXPENSE";
 type CategoryRow = { id: string; name: string; kind: Direction };
 type SourceLabel = "M-Pesa" | "Cash" | "Bank" | "Other";
 
+const getGreeting = (date = new Date()) => {
+  const hour = date.getHours();
+
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+};
+
 type SavingsGoal = {
   id: string;
   name: string;
@@ -93,6 +101,7 @@ const toLabelSource = (source: string): SourceLabel => {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [now, setNow] = useState(new Date());
   const [transactions, setTransactions] = useState<DashboardTransaction[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<CategoryRow[]>([]);
@@ -359,14 +368,26 @@ export default function DashboardPage() {
     }
   };
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   const topCategories = expenseCategoryData.slice(0, 5);
+  const greeting = getGreeting(now);
+  const firstName = user?.name?.trim()?.split(/\s+/)[0] || "";
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Overview</p>
-          <h1 className="mt-2 text-3xl font-semibold text-navy">Good morning, {user?.name?.split(" ")[0] || "there"}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-navy sm:text-3xl">
+            {greeting}{firstName ? `, ${firstName}` : ""}
+          </h1>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowTransactionForm(true)} className="rounded-2xl bg-emerald px-4 py-2.5 font-semibold text-white hover:bg-emerald-600">
