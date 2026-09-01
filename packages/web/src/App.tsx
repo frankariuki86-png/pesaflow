@@ -4,7 +4,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import ChamaPage from "./pages/ChamaPage";
 import BusinessPage from "./pages/BusinessPage";
 import ReportsPage from "./pages/ReportsPage";
-import AccountsPage from "./pages/AccountsPage";
+import SavingsPage from "./pages/SavingsPage";
 import GoalsPage from "./pages/GoalsPage";
 import LoginPage from "./pages/LoginPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -39,7 +39,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/savings" element={<SavingsPage />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/chama" element={<ChamaPage />} />
         <Route path="/business" element={<BusinessPage />} />
