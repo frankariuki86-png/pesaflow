@@ -7,8 +7,9 @@
   ],
   "scripts": {
     "bootstrap": "npm install",
-    "dev": "concurrently \"npm --prefix packages/backend run dev\" \"npm --prefix packages/web run dev\" \"npm --prefix packages/mobile run start\"",
-    "build": "npm --prefix packages/backend run build && npm --prefix packages/web run build && npm --prefix packages/mobile run build"
+    "dev": "concurrently \"npm --prefix packages/web run dev\" \"npm --prefix packages/mobile run start\"",
+    "build": "npm --prefix packages/web run build && npm --prefix packages/mobile run build",
+    "lint": "npm --prefix packages/web exec tsc --noEmit && npm --prefix packages/mobile exec tsc --noEmit"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"
