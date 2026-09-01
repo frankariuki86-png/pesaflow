@@ -22,10 +22,24 @@ export default function ChamaPage() {
 
   const loadChamas = async () => {
     if (!user?.id) return;
-    const { data, error: queryError } = await supabase.from("chamas").select("id, name, description, contribution_amount, contribution_frequency").eq("owner_id", user.id).order("created_at", { ascending: false });
-    if (queryError) { setError("Unable to load your chamas."); return; }
-    const loaded = (data as Chama[]) ?? [];
-    setChamas(loaded); setSelectedId((current) => current || loaded[0]?.id || "");
+    const { data, error: queryError } = await supabase
+      .from("chama_members")
+      .select("chama_id, status, role, chamas(id, name, description, contribution_amount, contribution_frequency)")
+      .eq("user_id", user.id)
+      .eq("status", "ACTIVE")
+      .order("created_at", { ascending: false });
+
+    if (queryError) {
+      setError("Unable to load your chamas.");
+      return;
+    }
+
+    const loaded = ((data ?? []) as Array<{ chama_id: string; chamas: Chama[] | null }> )
+      .flatMap((item) => item.chamas ?? [])
+      .filter(Boolean) as Chama[];
+
+    setChamas(loaded);
+    setSelectedId((current) => current || loaded[0]?.id || "");
   };
 
   const loadGroupData = async () => {
@@ -51,7 +65,11 @@ export default function ChamaPage() {
     const { data, error: insertError } = await supabase.from("chamas").insert({ owner_id: user.id, name: chamaForm.name.trim(), description: chamaForm.description.trim() || null, contribution_amount: Number(chamaForm.contribution_amount) || 0, contribution_frequency: chamaForm.contribution_frequency }).select("id, name, description, contribution_amount, contribution_frequency").single();
     if (insertError) setError("Unable to create chama."); else {
       const { error: memberError } = await supabase.from("chama_members").insert({ chama_id: data.id, user_id: user.id, role: "CHAIRPERSON", status: "ACTIVE" });
-      if (memberError) setError("Chama created, but owner membership could not be initialized.");
+      if (memberError) {
+        setError("Chama created, but owner membership could not be initialized.");
+        setSaving(false);
+        return;
+      }
       setChamas((current) => [data as Chama, ...current]); setSelectedId(data.id); setChamaForm({ name: "", description: "", contribution_amount: "", contribution_frequency: "MONTHLY" }); setMessage("Chama created successfully.");
     }
     setSaving(false);

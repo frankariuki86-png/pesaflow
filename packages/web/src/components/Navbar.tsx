@@ -11,6 +11,8 @@ export default function Navbar() {
   const navItems = [
     { path: "/", label: "Dashboard", icon: "📊" },
     { path: "/transactions", label: "Transactions", icon: "💰" },
+    { path: "/accounts", label: "Accounts", icon: "🏦" },
+    { path: "/goals", label: "Goals", icon: "🎯" },
     { path: "/chama", label: "Chama", icon: "👥" },
     { path: "/business", label: "Business", icon: "💼" },
     { path: "/reports", label: "Reports", icon: "📈" },

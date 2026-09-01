@@ -380,35 +380,150 @@ for all using (
 
 drop policy if exists "chamas_own_record" on public.chamas;
 create policy "chamas_own_record" on public.chamas
-for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+for select using (
+  auth.uid() = owner_id
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chamas.id
+      and cm.user_id = auth.uid()
+      and cm.status = 'ACTIVE'
+  )
+);
+
+create policy "chamas_insert_own_record" on public.chamas
+for insert with check (auth.uid() = owner_id);
+
+create policy "chamas_update_own_record" on public.chamas
+for update using (
+  auth.uid() = owner_id
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chamas.id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
+  )
+) with check (
+  auth.uid() = owner_id
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chamas.id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
+  )
+);
 
 drop policy if exists "chama_members_own_record" on public.chama_members;
 create policy "chama_members_own_record" on public.chama_members
-for all using (
-  exists (
-    select 1 from public.chamas c where c.id = chama_id and c.owner_id = auth.uid()
+for select using (
+  auth.uid() = user_id
+  or exists (
+    select 1 from public.chamas c where c.id = chama_members.chama_id and c.owner_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chama_members.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
+  )
+);
+
+create policy "chama_members_insert_own_record" on public.chama_members
+for insert with check (
+  auth.uid() = user_id
+  or exists (
+    select 1 from public.chamas c where c.id = chama_members.chama_id and c.owner_id = auth.uid()
+  )
+);
+
+create policy "chama_members_update_own_record" on public.chama_members
+for update using (
+  auth.uid() = user_id
+  or exists (
+    select 1 from public.chamas c where c.id = chama_members.chama_id and c.owner_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chama_members.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
   )
 ) with check (
-  exists (
-    select 1 from public.chamas c where c.id = chama_id and c.owner_id = auth.uid()
+  auth.uid() = user_id
+  or exists (
+    select 1 from public.chamas c where c.id = chama_members.chama_id and c.owner_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.chama_members cm
+    where cm.chama_id = chama_members.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
   )
 );
 
 drop policy if exists "chama_contributions_own_record" on public.chama_contributions;
 create policy "chama_contributions_own_record" on public.chama_contributions
-for all using (
+for select using (
   exists (
-    select 1
-    from public.chama_members cm
-    join public.chamas c on c.id = cm.chama_id
-    where cm.id = member_id and c.owner_id = auth.uid()
+    select 1 from public.chama_members cm
+    where cm.id = member_id and cm.user_id = auth.uid() and cm.status = 'ACTIVE'
+  )
+  or exists (
+    select 1 from public.chamas c
+    join public.chama_members cm on cm.chama_id = c.id
+    where c.id = chama_contributions.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
+  )
+);
+
+create policy "chama_contributions_insert_own_record" on public.chama_contributions
+for insert with check (
+  exists (
+    select 1 from public.chama_members cm
+    where cm.id = member_id and cm.user_id = auth.uid() and cm.status = 'ACTIVE'
+  )
+  or exists (
+    select 1 from public.chamas c
+    join public.chama_members cm on cm.chama_id = c.id
+    where c.id = chama_contributions.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
+  )
+);
+
+create policy "chama_contributions_update_own_record" on public.chama_contributions
+for update using (
+  exists (
+    select 1 from public.chama_members cm
+    where cm.id = member_id and cm.user_id = auth.uid() and cm.status = 'ACTIVE'
+  )
+  or exists (
+    select 1 from public.chamas c
+    join public.chama_members cm on cm.chama_id = c.id
+    where c.id = chama_contributions.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
   )
 ) with check (
   exists (
-    select 1
-    from public.chama_members cm
-    join public.chamas c on c.id = cm.chama_id
-    where cm.id = member_id and c.owner_id = auth.uid()
+    select 1 from public.chama_members cm
+    where cm.id = member_id and cm.user_id = auth.uid() and cm.status = 'ACTIVE'
+  )
+  or exists (
+    select 1 from public.chamas c
+    join public.chama_members cm on cm.chama_id = c.id
+    where c.id = chama_contributions.chama_id
+      and cm.user_id = auth.uid()
+      and cm.role in ('CHAIRPERSON','TREASURER','SECRETARY')
+      and cm.status = 'ACTIVE'
   )
 );
 
