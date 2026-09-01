@@ -106,6 +106,15 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dashboardSummary, setDashboardSummary] = useState({
+    total_income: 0,
+    total_expenses: 0,
+    balance: 0,
+    monthly_income: 0,
+    monthly_expenses: 0,
+    monthly_savings: 0,
+    cash_flow: 0,
+  });
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -169,7 +178,7 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     if (!user?.id) return;
 
-    const [transactionsResult, goalsResult] = await Promise.all([
+    const [transactionsResult, goalsResult, summaryResult] = await Promise.all([
       supabase
         .from("transactions")
         .select("*")
@@ -177,13 +186,24 @@ export default function DashboardPage() {
         .order("occurred_at", { ascending: false })
         .limit(25),
       supabase.from("savings_goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.rpc("get_dashboard_summary", { p_user_id: user.id }),
     ]);
 
     if (transactionsResult.error) throw transactionsResult.error;
     if (goalsResult.error) throw goalsResult.error;
+    if (summaryResult.error) throw summaryResult.error;
 
     setTransactions((transactionsResult.data as DashboardTransaction[]) ?? []);
     setGoals((goalsResult.data as SavingsGoal[]) ?? []);
+    setDashboardSummary((summaryResult.data as typeof dashboardSummary) ?? {
+      total_income: 0,
+      total_expenses: 0,
+      balance: 0,
+      monthly_income: 0,
+      monthly_expenses: 0,
+      monthly_savings: 0,
+      cash_flow: 0,
+    });
   };
 
   useEffect(() => {
@@ -217,21 +237,14 @@ export default function DashboardPage() {
     }));
   }, [availableCategories]);
 
-  const summary = useMemo(() => {
-    const balance = transactions.reduce((sum, item) => sum + (item.direction === "INCOME" ? item.amount : -item.amount), 0);
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const monthlyIncome = transactions
-      .filter((item) => item.direction === "INCOME" && new Date(item.occurred_at) >= monthStart)
-      .reduce((sum, item) => sum + item.amount, 0);
-    const monthlyExpenses = transactions
-      .filter((item) => item.direction === "EXPENSE" && new Date(item.occurred_at) >= monthStart)
-      .reduce((sum, item) => sum + item.amount, 0);
-    const goalProgress = goals.length
+  const summary = useMemo(() => ({
+    balance: dashboardSummary.balance,
+    monthlyIncome: dashboardSummary.monthly_income,
+    monthlyExpenses: dashboardSummary.monthly_expenses,
+    goalProgress: goals.length
       ? goals.reduce((sum, goal) => sum + Math.min(goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0, 100), 0) / goals.length
-      : 0;
-
-    return { balance, monthlyIncome, monthlyExpenses, goalProgress };
-  }, [transactions, goals]);
+      : 0,
+  }), [dashboardSummary, goals]);
 
   const incomeExpenseData = useMemo(() => buildIncomeExpenseSeries(transactions, "month"), [transactions]);
   const spendingTrendData = useMemo(() => buildTrendSeries(transactions, "month"), [transactions]);
@@ -406,22 +419,22 @@ export default function DashboardPage() {
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-3xl bg-white p-6 shadow-soft">
               <p className="text-sm text-muted">Total income</p>
-              <h2 className="mt-4 text-3xl font-semibold text-navy">{formatCurrency(summaryTotals.income)}</h2>
+              <h2 className="mt-4 text-3xl font-semibold text-navy">{formatCurrency(dashboardSummary.total_income)}</h2>
               <p className="mt-2 text-sm text-muted">Across tracked transactions</p>
             </div>
             <div className="rounded-3xl bg-emerald-50 p-6 shadow-soft">
               <p className="text-sm text-emerald">Total expenses</p>
-              <h2 className="mt-4 text-3xl font-semibold text-emerald">{formatCurrency(summaryTotals.expenses)}</h2>
+              <h2 className="mt-4 text-3xl font-semibold text-emerald">{formatCurrency(dashboardSummary.total_expenses)}</h2>
               <p className="mt-2 text-sm text-emerald/80">Updated from your latest records</p>
             </div>
             <div className="rounded-3xl bg-red-50 p-6 shadow-soft">
               <p className="text-sm text-red-600">Balance</p>
-              <h2 className="mt-4 text-3xl font-semibold text-red-600">{formatCurrency(summary.balance)}</h2>
+              <h2 className="mt-4 text-3xl font-semibold text-red-600">{formatCurrency(dashboardSummary.balance)}</h2>
               <p className="mt-2 text-sm text-red-500/80">Net cash position</p>
             </div>
             <div className="rounded-3xl bg-sky-50 p-6 shadow-soft">
               <p className="text-sm text-sky-700">Savings</p>
-              <h2 className="mt-4 text-3xl font-semibold text-sky-700">{formatCurrency(summary.monthlyIncome - summary.monthlyExpenses)}</h2>
+              <h2 className="mt-4 text-3xl font-semibold text-sky-700">{formatCurrency(dashboardSummary.monthly_savings)}</h2>
               <p className="mt-2 text-sm text-sky-600">Monthly surplus</p>
             </div>
           </div>
