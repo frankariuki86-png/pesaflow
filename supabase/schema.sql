@@ -71,6 +71,27 @@ create table if not exists public.savings_goals (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.savings_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null check (kind in ('DEPOSIT','WITHDRAWAL')),
+  amount numeric(12,2) not null check (amount > 0),
+  description text,
+  created_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create table if not exists public.goal_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  goal_id uuid not null references public.savings_goals(id) on delete cascade,
+  kind text not null check (kind in ('CONTRIBUTION','WITHDRAWAL')),
+  amount numeric(12,2) not null check (amount > 0),
+  description text,
+  created_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb
+);
+
 create table if not exists public.businesses (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
@@ -251,6 +272,8 @@ alter table public.categories enable row level security;
 alter table public.financial_sources enable row level security;
 alter table public.budgets enable row level security;
 alter table public.savings_goals enable row level security;
+alter table public.savings_transactions enable row level security;
+alter table public.goal_transactions enable row level security;
 alter table public.businesses enable row level security;
 alter table public.business_products enable row level security;
 alter table public.business_sales enable row level security;
@@ -271,6 +294,8 @@ grant select, insert, update, delete on table
   public.financial_sources,
   public.budgets,
   public.savings_goals,
+  public.savings_transactions,
+  public.goal_transactions,
   public.businesses,
   public.business_products,
   public.business_sales,
@@ -318,6 +343,14 @@ for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "savings_goals_own_record" on public.savings_goals;
 create policy "savings_goals_own_record" on public.savings_goals
+for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "savings_transactions_own_record" on public.savings_transactions;
+create policy "savings_transactions_own_record" on public.savings_transactions
+for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "goal_transactions_own_record" on public.goal_transactions;
+create policy "goal_transactions_own_record" on public.goal_transactions
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "businesses_own_record" on public.businesses;

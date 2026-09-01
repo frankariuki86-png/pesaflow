@@ -11,8 +11,6 @@ type Goal = {
   created_at: string;
 };
 
-type Account = { id: string; name: string; type: string };
-
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-KE", {
   style: "currency",
   currency: "KES",
@@ -22,30 +20,41 @@ const formatCurrency = (amount: number) => new Intl.NumberFormat("en-KE", {
 export default function GoalsPage() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [goalForm, setGoalForm] = useState({ name: "", target_amount: "", target_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) });
-  const [allocationForm, setAllocationForm] = useState({ goalId: "", accountId: "", amount: "", note: "", kind: "CONTRIBUTION" as "CONTRIBUTION" | "WITHDRAWAL" });
+  const [goalForm, setGoalForm] = useState({
+    name: "",
+    target_amount: "",
+    target_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+  });
+  const [allocationForm, setAllocationForm] = useState({
+    goalId: "",
+    amount: "",
+    note: "",
+    kind: "CONTRIBUTION" as "CONTRIBUTION" | "WITHDRAWAL",
+  });
 
   const loadData = async () => {
     if (!user?.id) return;
 
-    const [goalsResult, accountsResult] = await Promise.all([
-      supabase.from("savings_goals").select("id, name, target_amount, saved_amount, target_date, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("accounts").select("id, name, type").eq("user_id", user.id).order("name"),
-    ]);
+    const { data, error: goalsError } = await supabase
+      .from("savings_goals")
+      .select("id, name, target_amount, saved_amount, target_date, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-    if (goalsResult.error || accountsResult.error) {
+    if (goalsError) {
       setError("Unable to load goals.");
       setLoading(false);
       return;
     }
 
-    setGoals((goalsResult.data as Goal[]) ?? []);
-    setAccounts((accountsResult.data as Account[]) ?? []);
-    setAllocationForm((current) => ({ ...current, goalId: current.goalId || (goalsResult.data as Goal[] | undefined)?.[0]?.id || "", accountId: current.accountId || (accountsResult.data as Account[] | undefined)?.[0]?.id || "" }));
+    setGoals((data as Goal[]) ?? []);
+    setAllocationForm((current) => ({
+      ...current,
+      goalId: current.goalId || (data as Goal[] | undefined)?.[0]?.id || "",
+    }));
     setLoading(false);
     setError("");
   };
@@ -75,7 +84,11 @@ export default function GoalsPage() {
       return;
     }
 
-    setGoalForm({ name: "", target_amount: "", target_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) });
+    setGoalForm({
+      name: "",
+      target_amount: "",
+      target_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    });
     setMessage("Goal created successfully.");
     await loadData();
   };
@@ -90,13 +103,12 @@ export default function GoalsPage() {
       return;
     }
 
-    const rpcName = allocationForm.kind === "CONTRIBUTION" ? "allocate_to_goal" : "withdraw_from_goal";
+    const rpcName = allocationForm.kind === "CONTRIBUTION" ? "contribute_to_goal" : "withdraw_from_goal";
     const { error: rpcError } = await supabase.rpc(rpcName, {
       p_user_id: user.id,
       p_goal_id: allocationForm.goalId,
       p_amount: amount,
-      p_note: allocationForm.note.trim() || undefined,
-      p_account_id: allocationForm.accountId || null,
+      p_description: allocationForm.note.trim() || (allocationForm.kind === "CONTRIBUTION" ? "Goal contribution" : "Goal withdrawal"),
     });
 
     if (rpcError) {
@@ -104,7 +116,12 @@ export default function GoalsPage() {
       return;
     }
 
-    setAllocationForm({ goalId: allocationForm.goalId, accountId: allocationForm.accountId, amount: "", note: "", kind: allocationForm.kind });
+    setAllocationForm({
+      goalId: allocationForm.goalId,
+      amount: "",
+      note: "",
+      kind: allocationForm.kind,
+    });
     setMessage(`${allocationForm.kind === "CONTRIBUTION" ? "Contribution" : "Withdrawal"} recorded successfully.`);
     await loadData();
   };
@@ -142,7 +159,7 @@ export default function GoalsPage() {
         </form>
 
         <form onSubmit={handleAllocation} className="rounded-3xl bg-white p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-navy">Goal allocation</h2>
+          <h2 className="text-xl font-semibold text-navy">Goal update</h2>
           <div className="mt-5 space-y-4">
             <div>
               <label className="block text-sm font-medium text-text">Goal</label>
@@ -158,15 +175,6 @@ export default function GoalsPage() {
               <select value={allocationForm.kind} onChange={(event) => setAllocationForm({ ...allocationForm, kind: event.target.value as "CONTRIBUTION" | "WITHDRAWAL" })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
                 <option value="CONTRIBUTION">Contribution</option>
                 <option value="WITHDRAWAL">Withdrawal</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text">Account</label>
-              <select value={allocationForm.accountId} onChange={(event) => setAllocationForm({ ...allocationForm, accountId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
-                <option value="">Optional account</option>
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>{account.name}</option>
-                ))}
               </select>
             </div>
             <div>
@@ -188,7 +196,7 @@ export default function GoalsPage() {
           <div>Saved</div>
           <div>Target</div>
           <div>Progress</div>
-          <div>Deadline</div>
+          <div>Status</div>
         </div>
 
         {loading ? (
@@ -199,9 +207,13 @@ export default function GoalsPage() {
           <div className="divide-y divide-border">
             {goals.map((goal) => {
               const progress = goal.target_amount > 0 ? Math.min((goal.saved_amount / goal.target_amount) * 100, 100) : 0;
+              const isComplete = goal.saved_amount >= goal.target_amount;
               return (
                 <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
-                  <div className="font-semibold">{goal.name}</div>
+                  <div>
+                    <div className="font-semibold">{goal.name}</div>
+                    <div className="text-xs text-muted">{goal.target_date ? new Date(goal.target_date).toLocaleDateString() : "No deadline"}</div>
+                  </div>
                   <div>{formatCurrency(goal.saved_amount)}</div>
                   <div>{formatCurrency(goal.target_amount)}</div>
                   <div>
@@ -210,7 +222,11 @@ export default function GoalsPage() {
                       <div className="h-full rounded-full bg-emerald" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
-                  <div>{goal.target_date ? new Date(goal.target_date).toLocaleDateString() : "No deadline"}</div>
+                  <div>
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isComplete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {isComplete ? "Completed" : "Active"}
+                    </span>
+                  </div>
                 </div>
               );
             })}
