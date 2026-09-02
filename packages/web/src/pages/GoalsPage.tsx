@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/authContext";
 import { supabase } from "../services/supabase";
+import { calculateGoalMetrics } from "../services/goals";
 
 type Goal = {
   id: string;
   name: string;
   target_amount: number;
   saved_amount: number;
+  total_contributions: number;
+  total_goal_purchases: number;
+  total_transfers_in: number;
+  total_transfers_out: number;
+  total_withdrawals: number;
+  current_balance: number;
+  achievement_percentage: number;
+  completion_percentage: number;
   target_date: string | null;
-  status?: "ACTIVE" | "ACHIEVED" | "COMPLETED";
+  status: "ACTIVE" | "ACHIEVED" | "COMPLETED";
   created_at: string;
 };
 
@@ -55,8 +64,8 @@ export default function GoalsPage() {
     if (!user?.id) return;
 
     const { data, error: goalsError } = await supabase
-      .from("savings_goals")
-      .select("id, name, target_amount, saved_amount, target_date, status, created_at")
+      .from("goal_metrics")
+      .select("id, name, target_amount, total_contributions, total_goal_purchases, total_transfers_in, total_transfers_out, total_withdrawals, current_balance, achievement_percentage, completion_percentage, target_date, status, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -66,7 +75,7 @@ export default function GoalsPage() {
       return;
     }
 
-    const loadedGoals = (data as Goal[]) ?? [];
+    const loadedGoals = ((data as Goal[]) ?? []).map((goal) => ({ ...goal, saved_amount: Number(goal.current_balance) }));
     setGoals(loadedGoals);
     setAllocationForm((current) => ({
       ...current,
@@ -435,11 +444,12 @@ export default function GoalsPage() {
         ) : (
           <div className="divide-y divide-border">
             {goals.map((goal) => {
-              const achievementPercent = goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0;
+              const metrics = calculateGoalMetrics(goal);
+              const achievementPercent = metrics.achievement_percentage;
               const currentStatus = goal.status || (goal.saved_amount >= goal.target_amount ? "ACHIEVED" : "ACTIVE");
               const isClosed = currentStatus === "COMPLETED";
-              const completionPercent = isClosed ? 100 : 0;
-              const remainingBalance = Math.max(goal.saved_amount, 0);
+              const completionPercent = metrics.completion_percentage;
+              const remainingBalance = Math.max(metrics.current_balance, 0);
               return (
                 <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
                   <div>

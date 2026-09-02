@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import HomeScreen from "./src/screens/HomeScreen";
+import GoalsScreen from "./src/screens/GoalsScreen";
 import MoneyScreen from "./src/screens/MoneyScreen";
 import ChamaScreen from "./src/screens/ChamaScreen";
 import BusinessScreen from "./src/screens/BusinessScreen";
@@ -66,6 +67,7 @@ function AuthenticatedApp() {
     <NavigationContainer>
       <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: "#10B981", tabBarStyle: { height: 70, paddingBottom: 10, paddingTop: 8 } }}>
         <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard" color={color} size={size} /> }} />
+        <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="target" color={color} size={size} /> }} />
         <Tab.Screen name="Money" component={MoneyScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="currency-usd" color={color} size={size} /> }} />
         <Tab.Screen name="Chama" component={ChamaScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account-group" color={color} size={size} /> }} />
         <Tab.Screen name="Business" component={BusinessScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="briefcase" color={color} size={size} /> }} />

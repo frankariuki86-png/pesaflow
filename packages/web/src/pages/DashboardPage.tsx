@@ -35,6 +35,7 @@ type SavingsGoal = {
   name: string;
   target_amount: number;
   saved_amount: number;
+  achievement_percentage: number;
   target_date: string | null;
 };
 
@@ -186,7 +187,7 @@ export default function DashboardPage() {
         .eq("user_id", user.id)
         .order("occurred_at", { ascending: false })
         .limit(25),
-      supabase.from("savings_goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("goal_metrics").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.rpc("get_personal_finance_summary", { p_user_id: user.id }),
     ]);
 
@@ -248,7 +249,7 @@ export default function DashboardPage() {
     monthlyIncome: dashboardSummary.monthly_income,
     monthlyExpenses: dashboardSummary.monthly_expenses,
     goalProgress: goals.length
-      ? goals.reduce((sum, goal) => sum + (goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0), 0) / goals.length
+      ? goals.reduce((sum, goal) => sum + Number(goal.achievement_percentage ?? 0), 0) / goals.length
       : 0,
   }), [dashboardSummary, goals]);
 
