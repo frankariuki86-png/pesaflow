@@ -248,7 +248,7 @@ export default function DashboardPage() {
     monthlyIncome: dashboardSummary.monthly_income,
     monthlyExpenses: dashboardSummary.monthly_expenses,
     goalProgress: goals.length
-      ? goals.reduce((sum, goal) => sum + Math.min(goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0, 100), 0) / goals.length
+      ? goals.reduce((sum, goal) => sum + (goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0), 0) / goals.length
       : 0,
   }), [dashboardSummary, goals]);
 

@@ -12,23 +12,6 @@ type Goal = {
   created_at: string;
 };
 
-const expenseCategories = [
-  "Food",
-  "Transport",
-  "Rent",
-  "Utilities",
-  "Airtime",
-  "Internet",
-  "Shopping",
-  "Entertainment",
-  "Education",
-  "Medical",
-  "Family",
-  "Loans",
-  "Business",
-  "Other",
-];
-
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-KE", {
   style: "currency",
   currency: "KES",
@@ -55,9 +38,18 @@ export default function GoalsPage() {
   const [purchaseForm, setPurchaseForm] = useState({
     goalId: "",
     amount: "",
-    category: "Other",
     note: "",
   });
+  const [transferForm, setTransferForm] = useState({
+    sourceGoalId: "",
+    destinationGoalId: "",
+    amount: "",
+    kind: "AVAILABLE_MONEY" as "AVAILABLE_MONEY" | "GOAL",
+  });
+
+  const activeGoals = goals.filter((goal) => goal.status !== "COMPLETED");
+  const completedGoals = goals.filter((goal) => goal.status === "COMPLETED" && Number(goal.saved_amount) > 0);
+  const openGoalOptions = activeGoals.map((goal) => ({ label: goal.name, value: goal.id }));
 
   const loadData = async () => {
     if (!user?.id) return;
@@ -78,11 +70,15 @@ export default function GoalsPage() {
     setGoals(loadedGoals);
     setAllocationForm((current) => ({
       ...current,
-      goalId: current.goalId || loadedGoals[0]?.id || "",
+      goalId: current.goalId || loadedGoals.find((goal) => goal.status !== "COMPLETED")?.id || "",
     }));
     setPurchaseForm((current) => ({
       ...current,
-      goalId: current.goalId || loadedGoals[0]?.id || "",
+      goalId: current.goalId || loadedGoals.find((goal) => goal.status !== "COMPLETED")?.id || "",
+    }));
+    setTransferForm((current) => ({
+      ...current,
+      sourceGoalId: current.sourceGoalId || loadedGoals.find((goal) => goal.status === "COMPLETED")?.id || "",
     }));
     setLoading(false);
     setError("");
@@ -127,6 +123,17 @@ export default function GoalsPage() {
     event.preventDefault();
     if (!user?.id) return;
 
+    const goal = goals.find((item) => item.id === allocationForm.goalId);
+    if (!goal) {
+      setError("Select a valid goal.");
+      return;
+    }
+
+    if (goal.status === "COMPLETED") {
+      setError("Completed goals cannot accept contributions or withdrawals.");
+      return;
+    }
+
     const amount = Number(allocationForm.amount);
     if (!allocationForm.goalId || !Number.isFinite(amount) || amount <= 0) {
       setError("Select a goal and enter a valid amount.");
@@ -160,9 +167,25 @@ export default function GoalsPage() {
     event.preventDefault();
     if (!user?.id) return;
 
+    const goal = goals.find((item) => item.id === purchaseForm.goalId);
+    if (!goal) {
+      setError("Select a valid goal.");
+      return;
+    }
+
+    if (goal.status === "COMPLETED") {
+      setError("This goal is already completed and closed.");
+      return;
+    }
+
     const amount = Number(purchaseForm.amount);
     if (!purchaseForm.goalId || !Number.isFinite(amount) || amount <= 0) {
       setError("Select a goal and enter a valid purchase amount.");
+      return;
+    }
+
+    if (amount > Number(goal.saved_amount)) {
+      setError("Insufficient goal balance.");
       return;
     }
 
@@ -170,7 +193,7 @@ export default function GoalsPage() {
       p_user_id: user.id,
       p_goal_id: purchaseForm.goalId,
       p_amount: amount,
-      p_category: purchaseForm.category,
+      p_category: "Other",
       p_description: purchaseForm.note.trim() || "Goal purchase",
       p_occurred_at: new Date().toISOString(),
     });
@@ -183,10 +206,86 @@ export default function GoalsPage() {
     setPurchaseForm({
       goalId: purchaseForm.goalId,
       amount: "",
-      category: "Other",
       note: "",
     });
-    setMessage("Goal purchase recorded and goal status updated.");
+    setMessage("Goal purchase recorded and the goal was closed.");
+    await loadData();
+  };
+
+  const handleTransferRemainingBalance = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user?.id) return;
+
+    const sourceGoal = goals.find((goal) => goal.id === transferForm.sourceGoalId);
+    if (!sourceGoal || sourceGoal.status !== "COMPLETED") {
+      setError("Select a completed goal to transfer from.");
+      return;
+    }
+
+    const amount = Number(transferForm.amount);
+    const availableBalance = Number(sourceGoal.saved_amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > availableBalance) {
+      setError("Transfer amount must be greater than zero and cannot exceed the remaining goal balance.");
+      return;
+    }
+
+    if (transferForm.kind === "AVAILABLE_MONEY") {
+      const { error: transferError } = await supabase.rpc("transfer_completed_goal_to_available_money", {
+        p_user_id: user.id,
+        p_goal_id: sourceGoal.id,
+        p_amount: amount,
+        p_description: "Transferred remaining goal balance to available money",
+        p_occurred_at: new Date().toISOString(),
+      });
+
+      if (transferError) {
+        setError(transferError.message || "Unable to transfer remaining balance.");
+        return;
+      }
+
+      setTransferForm({
+        sourceGoalId: transferForm.sourceGoalId,
+        destinationGoalId: "",
+        amount: "",
+        kind: "AVAILABLE_MONEY",
+      });
+      setMessage("Remaining goal balance transferred to available money.");
+      await loadData();
+      return;
+    }
+
+    if (!transferForm.destinationGoalId) {
+      setError("Select a destination goal for the transfer.");
+      return;
+    }
+
+    const destinationGoal = goals.find((goal) => goal.id === transferForm.destinationGoalId);
+    if (!destinationGoal || destinationGoal.status !== "ACTIVE") {
+      setError("Destination goal must be ACTIVE.");
+      return;
+    }
+
+    const { error: transferError } = await supabase.rpc("transfer_completed_goal_to_goal", {
+      p_user_id: user.id,
+      p_source_goal_id: sourceGoal.id,
+      p_destination_goal_id: destinationGoal.id,
+      p_amount: amount,
+      p_description: "Transferred remaining goal balance to another goal",
+      p_occurred_at: new Date().toISOString(),
+    });
+
+    if (transferError) {
+      setError(transferError.message || "Unable to transfer remaining balance to another goal.");
+      return;
+    }
+
+    setTransferForm({
+      sourceGoalId: transferForm.sourceGoalId,
+      destinationGoalId: "",
+      amount: "",
+      kind: "AVAILABLE_MONEY",
+    });
+    setMessage("Remaining goal balance transferred to another active goal.");
     await loadData();
   };
 
@@ -229,8 +328,8 @@ export default function GoalsPage() {
               <label className="block text-sm font-medium text-text">Goal</label>
               <select value={allocationForm.goalId} onChange={(event) => setAllocationForm({ ...allocationForm, goalId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
                 <option value="">Select goal</option>
-                {goals.map((goal) => (
-                  <option key={goal.id} value={goal.id}>{goal.name}</option>
+                {openGoalOptions.map((goal) => (
+                  <option key={goal.value} value={goal.value}>{goal.label}</option>
                 ))}
               </select>
             </div>
@@ -260,16 +359,8 @@ export default function GoalsPage() {
               <label className="block text-sm font-medium text-text">Goal</label>
               <select value={purchaseForm.goalId} onChange={(event) => setPurchaseForm({ ...purchaseForm, goalId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
                 <option value="">Select goal</option>
-                {goals.map((goal) => (
-                  <option key={goal.id} value={goal.id}>{goal.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text">Category</label>
-              <select value={purchaseForm.category} onChange={(event) => setPurchaseForm({ ...purchaseForm, category: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
-                {expenseCategories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                {openGoalOptions.map((goal) => (
+                  <option key={goal.value} value={goal.value}>{goal.label}</option>
                 ))}
               </select>
             </div>
@@ -278,13 +369,55 @@ export default function GoalsPage() {
               <input type="number" min="0" step="0.01" value={purchaseForm.amount} onChange={(event) => setPurchaseForm({ ...purchaseForm, amount: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="2500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text">Note</label>
-              <input value={purchaseForm.note} onChange={(event) => setPurchaseForm({ ...purchaseForm, note: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="Laptop purchase" />
+              <label className="block text-sm font-medium text-text">Description</label>
+              <input value={purchaseForm.note} onChange={(event) => setPurchaseForm({ ...purchaseForm, note: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="Bought laptop" />
             </div>
             <button type="submit" className="w-full rounded-2xl bg-rose-600 px-4 py-3 font-semibold text-white">Complete goal / make purchase</button>
           </div>
         </form>
       </div>
+
+      {completedGoals.length > 0 && (
+        <form onSubmit={handleTransferRemainingBalance} className="mt-8 rounded-3xl bg-white p-6 shadow-soft">
+          <h2 className="text-xl font-semibold text-navy">Transfer remaining balance</h2>
+          <div className="mt-5 grid gap-4 lg:grid-cols-4">
+            <div>
+              <label className="block text-sm font-medium text-text">Completed goal</label>
+              <select value={transferForm.sourceGoalId} onChange={(event) => setTransferForm({ ...transferForm, sourceGoalId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                <option value="">Select goal</option>
+                {completedGoals.map((goal) => (
+                  <option key={goal.id} value={goal.id}>{goal.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Destination</label>
+              <select value={transferForm.kind} onChange={(event) => setTransferForm({ ...transferForm, kind: event.target.value as "AVAILABLE_MONEY" | "GOAL" })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                <option value="AVAILABLE_MONEY">Available money</option>
+                <option value="GOAL">Another active goal</option>
+              </select>
+            </div>
+            {transferForm.kind === "GOAL" && (
+              <div>
+                <label className="block text-sm font-medium text-text">Destination goal</label>
+                <select value={transferForm.destinationGoalId} onChange={(event) => setTransferForm({ ...transferForm, destinationGoalId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                  <option value="">Select destination</option>
+                  {activeGoals.filter((goal) => goal.id !== transferForm.sourceGoalId).map((goal) => (
+                    <option key={goal.id} value={goal.id}>{goal.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-text">Amount</label>
+              <input type="number" min="0" step="0.01" value={transferForm.amount} onChange={(event) => setTransferForm({ ...transferForm, amount: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="2500" />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button type="submit" className="rounded-2xl bg-violet-600 px-4 py-3 font-semibold text-white">Transfer remaining balance</button>
+          </div>
+        </form>
+      )}
 
       <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-soft">
         <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
@@ -302,9 +435,11 @@ export default function GoalsPage() {
         ) : (
           <div className="divide-y divide-border">
             {goals.map((goal) => {
-              const progress = goal.target_amount > 0 ? Math.min((goal.saved_amount / goal.target_amount) * 100, 100) : 0;
+              const achievementPercent = goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0;
               const currentStatus = goal.status || (goal.saved_amount >= goal.target_amount ? "ACHIEVED" : "ACTIVE");
-              const isComplete = currentStatus !== "ACTIVE";
+              const isClosed = currentStatus === "COMPLETED";
+              const completionPercent = isClosed ? 100 : 0;
+              const remainingBalance = Math.max(goal.saved_amount, 0);
               return (
                 <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
                   <div>
@@ -314,15 +449,19 @@ export default function GoalsPage() {
                   <div>{formatCurrency(goal.saved_amount)}</div>
                   <div>{formatCurrency(goal.target_amount)}</div>
                   <div>
-                    <div className="mb-1 text-xs text-muted">{progress.toFixed(0)}%</div>
+                    <div className="mb-1 text-xs text-muted">{achievementPercent.toFixed(0)}% achieved</div>
                     <div className="h-2.5 rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-emerald" style={{ width: `${progress}%` }} />
+                      <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(achievementPercent, 100)}%` }} />
                     </div>
+                    {isClosed && <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700">{completionPercent}% complete</div>}
                   </div>
-                  <div>
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isComplete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                  <div className="space-y-1">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isClosed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                       {currentStatus}
                     </span>
+                    {isClosed && remainingBalance > 0 && (
+                      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Balance {formatCurrency(remainingBalance)}</div>
+                    )}
                   </div>
                 </div>
               );
