@@ -226,8 +226,10 @@ $$;
 alter table public.savings_transactions enable row level security;
 alter table public.goal_transactions enable row level security;
 
-create policy if not exists "savings_transactions_own_record" on public.savings_transactions
+drop policy if exists "savings_transactions_own_record" on public.savings_transactions;
+create policy "savings_transactions_own_record" on public.savings_transactions
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "goal_transactions_own_record" on public.goal_transactions
+drop policy if exists "goal_transactions_own_record" on public.goal_transactions;
+create policy "goal_transactions_own_record" on public.goal_transactions
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

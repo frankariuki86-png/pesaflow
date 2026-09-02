@@ -10,6 +10,23 @@ type SavingsTransaction = {
   created_at: string;
 };
 
+const expenseCategories = [
+  "Food",
+  "Transport",
+  "Rent",
+  "Utilities",
+  "Airtime",
+  "Internet",
+  "Shopping",
+  "Entertainment",
+  "Education",
+  "Medical",
+  "Family",
+  "Loans",
+  "Business",
+  "Other",
+];
+
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-KE", {
   style: "currency",
   currency: "KES",
@@ -24,6 +41,7 @@ export default function SavingsPage() {
   const [message, setMessage] = useState("");
   const [savingForm, setSavingForm] = useState({ amount: "", description: "" });
   const [withdrawForm, setWithdrawForm] = useState({ amount: "", description: "" });
+  const [spendingForm, setSpendingForm] = useState({ amount: "", description: "", category: "Other" });
 
   const loadSavings = async () => {
     if (!user?.id) return;
@@ -108,6 +126,34 @@ export default function SavingsPage() {
     await loadSavings();
   };
 
+  const spendFromSavings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user?.id) return;
+
+    const amount = Number(spendingForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a valid amount to spend.");
+      return;
+    }
+
+    const { error: spendError } = await supabase.rpc("spend_from_savings", {
+      p_user_id: user.id,
+      p_amount: amount,
+      p_category: spendingForm.category,
+      p_description: spendingForm.description.trim() || "Spent directly from savings",
+      p_occurred_at: new Date().toISOString(),
+    });
+
+    if (spendError) {
+      setError(spendError.message || "Unable to record spending from savings.");
+      return;
+    }
+
+    setSpendingForm({ amount: "", description: "", category: "Other" });
+    setMessage("Expense paid from savings recorded successfully.");
+    await loadSavings();
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -135,9 +181,9 @@ export default function SavingsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
         <form onSubmit={saveMoney} className="rounded-3xl bg-white p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-navy">Save money</h2>
+          <h2 className="text-xl font-semibold text-navy">Add to savings</h2>
           <div className="mt-5 space-y-4">
             <div>
               <label className="block text-sm font-medium text-text">Amount</label>
@@ -152,7 +198,7 @@ export default function SavingsPage() {
         </form>
 
         <form onSubmit={withdrawMoney} className="rounded-3xl bg-white p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-navy">Withdraw from savings</h2>
+          <h2 className="text-xl font-semibold text-navy">Transfer out</h2>
           <div className="mt-5 space-y-4">
             <div>
               <label className="block text-sm font-medium text-text">Amount</label>
@@ -163,6 +209,29 @@ export default function SavingsPage() {
               <input value={withdrawForm.description} onChange={(event) => setWithdrawForm({ ...withdrawForm, description: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="Emergency withdrawal" />
             </div>
             <button type="submit" className="w-full rounded-2xl bg-sky-600 px-4 py-3 font-semibold text-white">Withdraw savings</button>
+          </div>
+        </form>
+
+        <form onSubmit={spendFromSavings} className="rounded-3xl bg-white p-6 shadow-soft">
+          <h2 className="text-xl font-semibold text-navy">Spend directly</h2>
+          <div className="mt-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text">Category</label>
+              <select value={spendingForm.category} onChange={(event) => setSpendingForm({ ...spendingForm, category: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                {expenseCategories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Amount</label>
+              <input type="number" min="0" step="0.01" value={spendingForm.amount} onChange={(event) => setSpendingForm({ ...spendingForm, amount: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="2500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Description</label>
+              <input value={spendingForm.description} onChange={(event) => setSpendingForm({ ...spendingForm, description: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="Personal shopping" />
+            </div>
+            <button type="submit" className="w-full rounded-2xl bg-rose-600 px-4 py-3 font-semibold text-white">Spend from savings</button>
           </div>
         </form>
       </div>

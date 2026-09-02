@@ -243,32 +243,6 @@ begin
   order by value desc;
 end;
 $$;
-    select a.id, a.name, a.opening_balance
-    from public.accounts a
-    where a.user_id = p_user_id
-      and (p_account_id is null or a.id = p_account_id)
-  ),
-  tx as (
-    select
-      coalesce(sum(
-        case
-          when t.direction = 'INCOME' then t.amount
-          when t.direction = 'EXPENSE' then -t.amount
-          when t.direction = 'TRANSFER' and lower(coalesce(t.metadata->>'transfer_direction', '')) = 'incoming' then t.amount
-          when t.direction = 'TRANSFER' and lower(coalesce(t.metadata->>'transfer_direction', '')) = 'outgoing' then -t.amount
-          else 0
-        end
-      ), 0) as net_flow
-    from public.transactions t
-    where t.user_id = p_user_id
-      and (
-        p_account_id is null
-        or t.account_name = (select a.name from account_match a where a.id = p_account_id)
-        or t.account_name = (select a.name from public.accounts a where a.id = p_account_id)
-      )
-  )
-  select coalesce((select sum(account_match.opening_balance) from account_match), 0) + coalesce((select net_flow from tx), 0);
-$$;
 
 create or replace function public.get_dashboard_summary(p_user_id uuid)
 returns table (
@@ -448,5 +422,6 @@ on conflict (user_id, name) do nothing;
 
 alter table public.accounts enable row level security;
 
-create policy if not exists "accounts_own_record" on public.accounts
+drop policy if exists "accounts_own_record" on public.accounts;
+create policy "accounts_own_record" on public.accounts
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

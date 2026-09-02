@@ -106,6 +106,7 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
   const [dashboardSummary, setDashboardSummary] = useState({
     total_income: 0,
     total_expenses: 0,
@@ -186,35 +187,40 @@ export default function DashboardPage() {
         .order("occurred_at", { ascending: false })
         .limit(25),
       supabase.from("savings_goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.rpc("get_dashboard_summary", { p_user_id: user.id }),
+      supabase.rpc("get_personal_finance_summary", { p_user_id: user.id }),
     ]);
 
     if (transactionsResult.error) throw transactionsResult.error;
     if (goalsResult.error) throw goalsResult.error;
     if (summaryResult.error) throw summaryResult.error;
 
+    const summaryRow = summaryResult.data?.[0] ?? summaryResult.data ?? null;
+    const totals = {
+      total_income: Number(summaryRow?.income_total ?? 0),
+      total_expenses: Number(summaryRow?.expense_total ?? 0),
+      balance: Number(summaryRow?.available_money ?? 0),
+      monthly_income: Number(summaryRow?.income_total ?? 0),
+      monthly_expenses: Number(summaryRow?.expense_total ?? 0),
+      monthly_savings: Number(summaryRow?.savings_balance ?? 0),
+      cash_flow: Number(summaryRow?.available_money ?? 0),
+    };
+
     setTransactions((transactionsResult.data as DashboardTransaction[]) ?? []);
     setGoals((goalsResult.data as SavingsGoal[]) ?? []);
-    setDashboardSummary((summaryResult.data as typeof dashboardSummary) ?? {
-      total_income: 0,
-      total_expenses: 0,
-      balance: 0,
-      monthly_income: 0,
-      monthly_expenses: 0,
-      monthly_savings: 0,
-      cash_flow: 0,
-    });
+    setDashboardSummary(totals);
   };
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
         setLoading(true);
+        setSummaryError("");
         if (!user?.id) return;
         await loadCategoryOptions();
         await fetchDashboardData();
       } catch (error) {
         console.error("Failed to load dashboard", error);
+        setSummaryError(error instanceof Error ? error.message : "Unable to load your financial summary.");
       } finally {
         setLoading(false);
       }
@@ -414,6 +420,11 @@ export default function DashboardPage() {
 
       {loading ? (
         <div className="rounded-3xl bg-white p-6 shadow-soft text-muted">Loading dashboard...</div>
+      ) : summaryError ? (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 shadow-soft">
+          <p className="font-semibold">Unable to load your financial summary.</p>
+          <p className="mt-2 text-sm">Please try again.</p>
+        </div>
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">

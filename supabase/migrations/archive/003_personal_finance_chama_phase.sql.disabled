@@ -76,6 +76,20 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.chama_contributions (
+  id uuid primary key default gen_random_uuid(),
+  chama_id uuid not null references public.chamas(id) on delete cascade,
+  member_id uuid not null references public.chama_members(id) on delete cascade,
+  amount numeric(12,2) not null check (amount >= 0),
+  contribution_type text not null default 'NORMAL' check (contribution_type in ('NORMAL','SPECIAL','EMERGENCY')),
+  period text not null default 'MONTHLY',
+  payment_method text not null default 'MPESA',
+  reference text,
+  contributed_at timestamptz not null default now(),
+  status text not null default 'PAID' check (status in ('PAID','PARTIAL','PENDING','LATE')),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.chama_invitations (
   id uuid primary key default gen_random_uuid(),
   chama_id uuid not null references public.chamas(id) on delete cascade,
@@ -123,6 +137,22 @@ create index if not exists idx_notification_preferences_user on public.notificat
 create index if not exists idx_audit_logs_entity on public.audit_logs(entity_type, entity_id, created_at desc);
 create index if not exists idx_chama_loans_chama_status on public.chama_loans(chama_id, status, due_date);
 create index if not exists idx_chama_invitations_chama on public.chama_invitations(chama_id, status);
+
+alter table public.chama_members
+  add column if not exists role text not null default 'MEMBER' check (role in ('CHAIRPERSON','TREASURER','SECRETARY','MEMBER')),
+  add column if not exists status text not null default 'ACTIVE' check (status in ('ACTIVE','PENDING','LEFT')),
+  add column if not exists joined_at timestamptz not null default now();
+
+alter table public.chama_contributions
+  add column if not exists chama_id uuid,
+  add column if not exists member_id uuid,
+  add column if not exists amount numeric(12,2),
+  add column if not exists contribution_type text default 'NORMAL' check (contribution_type in ('NORMAL','SPECIAL','EMERGENCY')),
+  add column if not exists period text default 'MONTHLY',
+  add column if not exists payment_method text default 'MPESA',
+  add column if not exists reference text,
+  add column if not exists contributed_at timestamptz default now(),
+  add column if not exists status text default 'PAID' check (status in ('PAID','PARTIAL','PENDING','LATE'));
 
 create or replace function public.get_chama_user_role(p_user_id uuid, p_chama_id uuid)
 returns text
@@ -193,22 +223,28 @@ alter table public.chama_invitations enable row level security;
 alter table public.chama_loans enable row level security;
 alter table public.chama_loan_repayments enable row level security;
 
-create policy if not exists "budgets_own_record" on public.budgets
+drop policy if exists "budgets_own_record" on public.budgets;
+create policy "budgets_own_record" on public.budgets
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "bills_own_record" on public.bills
+drop policy if exists "bills_own_record" on public.bills;
+create policy "bills_own_record" on public.bills
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "recurring_transactions_own_record" on public.recurring_transactions
+drop policy if exists "recurring_transactions_own_record" on public.recurring_transactions;
+create policy "recurring_transactions_own_record" on public.recurring_transactions
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "user_preferences_own_record" on public.user_preferences
+drop policy if exists "user_preferences_own_record" on public.user_preferences;
+create policy "user_preferences_own_record" on public.user_preferences
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "notification_preferences_own_record" on public.notification_preferences
+drop policy if exists "notification_preferences_own_record" on public.notification_preferences;
+create policy "notification_preferences_own_record" on public.notification_preferences
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "audit_logs_own_record" on public.audit_logs
+drop policy if exists "audit_logs_own_record" on public.audit_logs;
+create policy "audit_logs_own_record" on public.audit_logs
 for select using (auth.uid() = user_id or exists (
   select 1
   from public.chama_members cm
@@ -216,7 +252,8 @@ for select using (auth.uid() = user_id or exists (
     and cm.status = 'ACTIVE'
 ));
 
-create policy if not exists "chama_invitations_access" on public.chama_invitations
+drop policy if exists "chama_invitations_access" on public.chama_invitations;
+create policy "chama_invitations_access" on public.chama_invitations
 for all using (
   exists (
     select 1
@@ -237,7 +274,8 @@ for all using (
   )
 );
 
-create policy if not exists "chama_loans_access" on public.chama_loans
+drop policy if exists "chama_loans_access" on public.chama_loans;
+create policy "chama_loans_access" on public.chama_loans
 for all using (
   exists (
     select 1
@@ -256,7 +294,8 @@ for all using (
   )
 );
 
-create policy if not exists "chama_loan_repayments_access" on public.chama_loan_repayments
+drop policy if exists "chama_loan_repayments_access" on public.chama_loan_repayments;
+create policy "chama_loan_repayments_access" on public.chama_loan_repayments
 for all using (
   exists (
     select 1
@@ -277,7 +316,8 @@ for all using (
   )
 );
 
-create policy if not exists "chamas_membership_access" on public.chamas
+drop policy if exists "chamas_membership_access" on public.chamas;
+create policy "chamas_membership_access" on public.chamas
 for select using (
   exists (
     select 1
@@ -288,7 +328,8 @@ for select using (
   )
 );
 
-create policy if not exists "chama_members_access" on public.chama_members
+drop policy if exists "chama_members_access" on public.chama_members;
+create policy "chama_members_access" on public.chama_members
 for all using (
   exists (
     select 1
@@ -307,7 +348,8 @@ for all using (
   )
 );
 
-create policy if not exists "chama_contributions_access" on public.chama_contributions
+drop policy if exists "chama_contributions_access" on public.chama_contributions;
+create policy "chama_contributions_access" on public.chama_contributions
 for all using (
   exists (
     select 1
@@ -326,7 +368,8 @@ for all using (
   )
 );
 
-create policy if not exists "notifications_own_record" on public.notifications
+drop policy if exists "notifications_own_record" on public.notifications;
+create policy "notifications_own_record" on public.notifications
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 insert into public.notification_preferences (user_id, category, enabled)

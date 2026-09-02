@@ -20,47 +20,85 @@ export default function HomeScreen() {
   const { session } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState({ income: 0, expenses: 0, balance: 0, savings: 0 });
 
   useEffect(() => {
     const loadData = async () => {
-      if (!session?.user.id) return;
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("id, description, amount, direction, category, occurred_at")
-        .eq("user_id", session.user.id)
-        .order("occurred_at", { ascending: false })
-        .limit(8);
-      if (!error) setTransactions((data as Transaction[]) ?? []);
-      setLoading(false);
+      if (!session?.user.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [transactionsResult, summaryResult] = await Promise.all([
+          supabase
+            .from("transactions")
+            .select("id, description, amount, direction, category, occurred_at")
+            .eq("user_id", session.user.id)
+            .order("occurred_at", { ascending: false })
+            .limit(8),
+          supabase.rpc("get_personal_finance_summary", { p_user_id: session.user.id }),
+        ]);
+
+        if (transactionsResult.error) throw transactionsResult.error;
+        if (summaryResult.error) throw summaryResult.error;
+
+        const summaryRow = summaryResult.data?.[0] ?? summaryResult.data ?? null;
+        setTransactions((transactionsResult.data as Transaction[]) ?? []);
+        setSummary({
+          income: Number(summaryRow?.income_total ?? 0),
+          expenses: Number(summaryRow?.expense_total ?? 0),
+          balance: Number(summaryRow?.available_money ?? 0),
+          savings: Number(summaryRow?.savings_balance ?? 0),
+        });
+      } catch (loadError) {
+        console.error("Failed to load mobile dashboard summary", loadError);
+        setError("Unable to load your financial summary.");
+      } finally {
+        setLoading(false);
+      }
     };
     void loadData();
   }, [session?.user.id]);
-
-  const income = transactions.filter((item) => item.direction === "INCOME").reduce((sum, item) => sum + Number(item.amount), 0);
-  const expenses = transactions.filter((item) => item.direction === "EXPENSE").reduce((sum, item) => sum + Number(item.amount), 0);
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.greeting}>Welcome back</Text>
         <Text style={styles.date}>{new Date().toLocaleDateString("en-KE", { dateStyle: "long" })}</Text>
-        <View style={styles.balanceCard}>
-          <Text style={styles.label}>Net balance</Text>
-          <Text style={styles.balanceValue}>{formatCurrency(income - expenses)}</Text>
-          <Text style={styles.caption}>Based on your recorded transactions</Text>
-        </View>
-        <View style={styles.row}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="arrow-down" color="#10B981" size={20} />
-            <Text style={styles.statLabel}>Income</Text>
-            <Text style={styles.statValue}>{formatCurrency(income)}</Text>
+        {error ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="arrow-up" color="#EF4444" size={20} />
-            <Text style={styles.statLabel}>Expenses</Text>
-            <Text style={styles.statValue}>{formatCurrency(expenses)}</Text>
-          </View>
-        </View>
+        ) : (
+          <>
+            <View style={styles.balanceCard}>
+              <Text style={styles.label}>Net balance</Text>
+              <Text style={styles.balanceValue}>{formatCurrency(summary.balance)}</Text>
+              <Text style={styles.caption}>Based on your actual savings and goal activity</Text>
+            </View>
+            <View style={styles.row}>
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons name="arrow-down" color="#10B981" size={20} />
+                <Text style={styles.statLabel}>Income</Text>
+                <Text style={styles.statValue}>{formatCurrency(summary.income)}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons name="arrow-up" color="#EF4444" size={20} />
+                <Text style={styles.statLabel}>Expenses</Text>
+                <Text style={styles.statValue}>{formatCurrency(summary.expenses)}</Text>
+              </View>
+            </View>
+            <View style={styles.savingsCard}>
+              <Text style={styles.label}>Savings</Text>
+              <Text style={styles.savingsValue}>{formatCurrency(summary.savings)}</Text>
+            </View>
+          </>
+        )}
         <Text style={styles.sectionTitle}>Recent transactions</Text>
         {loading ? <ActivityIndicator color="#10B981" /> : transactions.length === 0 ? (
           <View style={styles.empty}><Text style={styles.emptyText}>No transactions yet.</Text></View>
@@ -89,9 +127,13 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 26, fontWeight: "700", color: "#17212B" },
   date: { fontSize: 14, color: "#667085", marginTop: 4, marginBottom: 22 },
   balanceCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+  savingsCard: { backgroundColor: "#E0F2FE", borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   label: { color: "#667085", fontSize: 13 },
   balanceValue: { color: "#17212B", fontSize: 32, fontWeight: "700", marginTop: 8 },
+  savingsValue: { color: "#075985", fontSize: 24, fontWeight: "700", marginTop: 8 },
   caption: { color: "#667085", fontSize: 12, marginTop: 8 },
+  errorCard: { backgroundColor: "#FEE2E2", borderRadius: 12, padding: 14, marginBottom: 16 },
+  errorText: { color: "#991B1B", fontSize: 13, fontWeight: "600" },
   row: { flexDirection: "row", gap: 12, marginBottom: 18 },
   statCard: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 14, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   statLabel: { color: "#667085", fontSize: 12, marginTop: 8 },

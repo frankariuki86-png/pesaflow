@@ -67,6 +67,8 @@ create table if not exists public.savings_goals (
   target_amount numeric(12,2) not null check (target_amount > 0),
   saved_amount numeric(12,2) not null default 0 check (saved_amount >= 0),
   target_date date not null,
+  status text not null default 'ACTIVE' check (status in ('ACTIVE','ACHIEVED','COMPLETED')),
+  completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -412,6 +414,8 @@ for all using (
 );
 
 drop policy if exists "chamas_own_record" on public.chamas;
+drop policy if exists "chamas_insert_own_record" on public.chamas;
+drop policy if exists "chamas_update_own_record" on public.chamas;
 create policy "chamas_own_record" on public.chamas
 for select using (
   auth.uid() = owner_id
@@ -448,6 +452,8 @@ for update using (
 );
 
 drop policy if exists "chama_members_own_record" on public.chama_members;
+drop policy if exists "chama_members_insert_own_record" on public.chama_members;
+drop policy if exists "chama_members_update_own_record" on public.chama_members;
 create policy "chama_members_own_record" on public.chama_members
 for select using (
   auth.uid() = user_id
@@ -499,6 +505,8 @@ for update using (
 );
 
 drop policy if exists "chama_contributions_own_record" on public.chama_contributions;
+drop policy if exists "chama_contributions_insert_own_record" on public.chama_contributions;
+drop policy if exists "chama_contributions_update_own_record" on public.chama_contributions;
 create policy "chama_contributions_own_record" on public.chama_contributions
 for select using (
   exists (

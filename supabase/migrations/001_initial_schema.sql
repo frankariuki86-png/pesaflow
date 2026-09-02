@@ -124,23 +124,28 @@ begin
 end;
 $$;
 
-create trigger if not exists set_profiles_updated_at
+drop trigger if exists set_profiles_updated_at on public.profiles;
+create trigger set_profiles_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
-create trigger if not exists set_transactions_updated_at
+drop trigger if exists set_transactions_updated_at on public.transactions;
+create trigger set_transactions_updated_at
 before update on public.transactions
 for each row execute function public.set_updated_at();
 
-create trigger if not exists set_businesses_updated_at
+drop trigger if exists set_businesses_updated_at on public.businesses;
+create trigger set_businesses_updated_at
 before update on public.businesses
 for each row execute function public.set_updated_at();
 
-create trigger if not exists set_business_products_updated_at
+drop trigger if exists set_business_products_updated_at on public.business_products;
+create trigger set_business_products_updated_at
 before update on public.business_products
 for each row execute function public.set_updated_at();
 
-create trigger if not exists set_chamas_updated_at
+drop trigger if exists set_chamas_updated_at on public.chamas;
+create trigger set_chamas_updated_at
 before update on public.chamas
 for each row execute function public.set_updated_at();
 
@@ -155,39 +160,49 @@ alter table public.chamas enable row level security;
 alter table public.chama_members enable row level security;
 alter table public.notifications enable row level security;
 
-create policy if not exists "profiles_select_own_record" on public.profiles
+drop policy if exists "profiles_select_own_record" on public.profiles;
+drop policy if exists "profiles_insert_own_record" on public.profiles;
+drop policy if exists "profiles_update_own_record" on public.profiles;
+drop policy if exists "profiles_delete_own_record" on public.profiles;
+create policy "profiles_select_own_record" on public.profiles
 for select using (auth.uid() = id);
-create policy if not exists "profiles_insert_own_record" on public.profiles
+create policy "profiles_insert_own_record" on public.profiles
 for insert with check (auth.uid() = id);
-create policy if not exists "profiles_update_own_record" on public.profiles
+create policy "profiles_update_own_record" on public.profiles
 for update using (auth.uid() = id) with check (auth.uid() = id);
-create policy if not exists "profiles_delete_own_record" on public.profiles
+create policy "profiles_delete_own_record" on public.profiles
 for delete using (auth.uid() = id);
 
-create policy if not exists "transactions_own_record" on public.transactions
+drop policy if exists "transactions_own_record" on public.transactions;
+create policy "transactions_own_record" on public.transactions
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "categories_own_record" on public.categories
+drop policy if exists "categories_own_record" on public.categories;
+create policy "categories_own_record" on public.categories
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "businesses_own_record" on public.businesses
+drop policy if exists "businesses_own_record" on public.businesses;
+create policy "businesses_own_record" on public.businesses
 for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 
-create policy if not exists "business_products_own_record" on public.business_products
+drop policy if exists "business_products_own_record" on public.business_products;
+create policy "business_products_own_record" on public.business_products
 for all using (
   exists (select 1 from public.businesses where businesses.id = business_products.business_id and businesses.owner_id = auth.uid())
 ) with check (
   exists (select 1 from public.businesses where businesses.id = business_products.business_id and businesses.owner_id = auth.uid())
 );
 
-create policy if not exists "business_sales_own_record" on public.business_sales
+drop policy if exists "business_sales_own_record" on public.business_sales;
+create policy "business_sales_own_record" on public.business_sales
 for all using (
   exists (select 1 from public.businesses where businesses.id = business_sales.business_id and businesses.owner_id = auth.uid())
 ) with check (
   exists (select 1 from public.businesses where businesses.id = business_sales.business_id and businesses.owner_id = auth.uid())
 );
 
-create policy if not exists "business_sale_items_own_record" on public.business_sale_items
+drop policy if exists "business_sale_items_own_record" on public.business_sale_items;
+create policy "business_sale_items_own_record" on public.business_sale_items
 for all using (
   exists (
     select 1
@@ -204,10 +219,12 @@ for all using (
   )
 );
 
-create policy if not exists "chamas_own_record" on public.chamas
+drop policy if exists "chamas_own_record" on public.chamas;
+create policy "chamas_own_record" on public.chamas
 for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 
-create policy if not exists "chama_members_own_record" on public.chama_members
+drop policy if exists "chama_members_own_record" on public.chama_members;
+create policy "chama_members_own_record" on public.chama_members
 for all using (
   exists (
     select 1 from public.chamas where chamas.id = chama_members.chama_id and chamas.owner_id = auth.uid()
@@ -218,7 +235,8 @@ for all using (
   )
 );
 
-create policy if not exists "notifications_own_record" on public.notifications
+drop policy if exists "notifications_own_record" on public.notifications;
+create policy "notifications_own_record" on public.notifications
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create or replace function public.handle_new_user()

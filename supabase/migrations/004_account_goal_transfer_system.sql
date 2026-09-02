@@ -267,8 +267,10 @@ $$;
 alter table public.goal_allocations enable row level security;
 alter table public.transaction_imports enable row level security;
 
-create policy if not exists "goal_allocations_own_record" on public.goal_allocations
+drop policy if exists "goal_allocations_own_record" on public.goal_allocations;
+create policy "goal_allocations_own_record" on public.goal_allocations
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "transaction_imports_own_record" on public.transaction_imports
+drop policy if exists "transaction_imports_own_record" on public.transaction_imports;
+create policy "transaction_imports_own_record" on public.transaction_imports
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

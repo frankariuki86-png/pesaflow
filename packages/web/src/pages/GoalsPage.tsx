@@ -8,8 +8,26 @@ type Goal = {
   target_amount: number;
   saved_amount: number;
   target_date: string | null;
+  status?: "ACTIVE" | "ACHIEVED" | "COMPLETED";
   created_at: string;
 };
+
+const expenseCategories = [
+  "Food",
+  "Transport",
+  "Rent",
+  "Utilities",
+  "Airtime",
+  "Internet",
+  "Shopping",
+  "Entertainment",
+  "Education",
+  "Medical",
+  "Family",
+  "Loans",
+  "Business",
+  "Other",
+];
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-KE", {
   style: "currency",
@@ -34,13 +52,19 @@ export default function GoalsPage() {
     note: "",
     kind: "CONTRIBUTION" as "CONTRIBUTION" | "WITHDRAWAL",
   });
+  const [purchaseForm, setPurchaseForm] = useState({
+    goalId: "",
+    amount: "",
+    category: "Other",
+    note: "",
+  });
 
   const loadData = async () => {
     if (!user?.id) return;
 
     const { data, error: goalsError } = await supabase
       .from("savings_goals")
-      .select("id, name, target_amount, saved_amount, target_date, created_at")
+      .select("id, name, target_amount, saved_amount, target_date, status, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -50,10 +74,15 @@ export default function GoalsPage() {
       return;
     }
 
-    setGoals((data as Goal[]) ?? []);
+    const loadedGoals = (data as Goal[]) ?? [];
+    setGoals(loadedGoals);
     setAllocationForm((current) => ({
       ...current,
-      goalId: current.goalId || (data as Goal[] | undefined)?.[0]?.id || "",
+      goalId: current.goalId || loadedGoals[0]?.id || "",
+    }));
+    setPurchaseForm((current) => ({
+      ...current,
+      goalId: current.goalId || loadedGoals[0]?.id || "",
     }));
     setLoading(false);
     setError("");
@@ -77,6 +106,7 @@ export default function GoalsPage() {
       target_amount: targetAmount,
       saved_amount: 0,
       target_date: goalForm.target_date,
+      status: "ACTIVE",
     });
 
     if (insertError) {
@@ -126,6 +156,40 @@ export default function GoalsPage() {
     await loadData();
   };
 
+  const handleGoalPurchase = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user?.id) return;
+
+    const amount = Number(purchaseForm.amount);
+    if (!purchaseForm.goalId || !Number.isFinite(amount) || amount <= 0) {
+      setError("Select a goal and enter a valid purchase amount.");
+      return;
+    }
+
+    const { error: purchaseError } = await supabase.rpc("spend_from_goal", {
+      p_user_id: user.id,
+      p_goal_id: purchaseForm.goalId,
+      p_amount: amount,
+      p_category: purchaseForm.category,
+      p_description: purchaseForm.note.trim() || "Goal purchase",
+      p_occurred_at: new Date().toISOString(),
+    });
+
+    if (purchaseError) {
+      setError(purchaseError.message || "Unable to complete the goal purchase.");
+      return;
+    }
+
+    setPurchaseForm({
+      goalId: purchaseForm.goalId,
+      amount: "",
+      category: "Other",
+      note: "",
+    });
+    setMessage("Goal purchase recorded and goal status updated.");
+    await loadData();
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -138,7 +202,7 @@ export default function GoalsPage() {
       {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {message && <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
         <form onSubmit={createGoal} className="rounded-3xl bg-white p-6 shadow-soft">
           <h2 className="text-xl font-semibold text-navy">Create goal</h2>
           <div className="mt-5 space-y-4">
@@ -159,7 +223,7 @@ export default function GoalsPage() {
         </form>
 
         <form onSubmit={handleAllocation} className="rounded-3xl bg-white p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-navy">Goal update</h2>
+          <h2 className="text-xl font-semibold text-navy">Goal transfer</h2>
           <div className="mt-5 space-y-4">
             <div>
               <label className="block text-sm font-medium text-text">Goal</label>
@@ -188,6 +252,38 @@ export default function GoalsPage() {
             <button type="submit" className="w-full rounded-2xl bg-sky-600 px-4 py-3 font-semibold text-white">Save update</button>
           </div>
         </form>
+
+        <form onSubmit={handleGoalPurchase} className="rounded-3xl bg-white p-6 shadow-soft">
+          <h2 className="text-xl font-semibold text-navy">Complete goal</h2>
+          <div className="mt-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text">Goal</label>
+              <select value={purchaseForm.goalId} onChange={(event) => setPurchaseForm({ ...purchaseForm, goalId: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                <option value="">Select goal</option>
+                {goals.map((goal) => (
+                  <option key={goal.id} value={goal.id}>{goal.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Category</label>
+              <select value={purchaseForm.category} onChange={(event) => setPurchaseForm({ ...purchaseForm, category: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3">
+                {expenseCategories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Purchase amount</label>
+              <input type="number" min="0" step="0.01" value={purchaseForm.amount} onChange={(event) => setPurchaseForm({ ...purchaseForm, amount: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="2500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text">Note</label>
+              <input value={purchaseForm.note} onChange={(event) => setPurchaseForm({ ...purchaseForm, note: event.target.value })} className="mt-2 w-full rounded-2xl border border-border px-4 py-3" placeholder="Laptop purchase" />
+            </div>
+            <button type="submit" className="w-full rounded-2xl bg-rose-600 px-4 py-3 font-semibold text-white">Complete goal / make purchase</button>
+          </div>
+        </form>
       </div>
 
       <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-soft">
@@ -207,7 +303,8 @@ export default function GoalsPage() {
           <div className="divide-y divide-border">
             {goals.map((goal) => {
               const progress = goal.target_amount > 0 ? Math.min((goal.saved_amount / goal.target_amount) * 100, 100) : 0;
-              const isComplete = goal.saved_amount >= goal.target_amount;
+              const currentStatus = goal.status || (goal.saved_amount >= goal.target_amount ? "ACHIEVED" : "ACTIVE");
+              const isComplete = currentStatus !== "ACTIVE";
               return (
                 <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
                   <div>
@@ -224,7 +321,7 @@ export default function GoalsPage() {
                   </div>
                   <div>
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isComplete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {isComplete ? "Completed" : "Active"}
+                      {currentStatus}
                     </span>
                   </div>
                 </div>
