@@ -13,6 +13,8 @@ node_modules/
 /dist/
 /build/
 coverage/
+**/.expo/
+packages/mobile/.expo/
 
 # editor files
 .vscode/
