@@ -62,10 +62,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: currentSession }, error }) => {
+      if (error) console.error("Unable to restore authentication session", error);
       if (mounted) {
         setSession(currentSession);
         if (!currentSession) setProfile(null);
+        setLoading(false);
+      }
+    }).catch((error: unknown) => {
+      console.error("Unable to restore authentication session", error);
+      if (mounted) {
+        setSession(null);
+        setProfile(null);
         setLoading(false);
       }
     });

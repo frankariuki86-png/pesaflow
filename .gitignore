@@ -2,10 +2,6 @@
 node_modules/
 
 # environment files
-.env
-.env.*
-**/.env
-**/.env.*
 !.env.example
 !**/.env.example
 
@@ -19,3 +15,4 @@ packages/mobile/.expo/
 # editor files
 .vscode/
 .DS_Store
+config.bat
