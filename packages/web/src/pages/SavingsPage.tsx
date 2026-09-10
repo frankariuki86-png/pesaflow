@@ -236,39 +236,41 @@ export default function SavingsPage() {
         </form>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-soft">
-        <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-          <div>Date</div>
-          <div>Type</div>
-          <div>Description</div>
-          <div>Amount</div>
-          <div>Balance</div>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-sm text-muted">Loading savings statement...</div>
-        ) : transactions.length === 0 ? (
-          <div className="p-6 text-sm text-muted">No savings movements yet.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {transactions.map((entry, index) => {
-              const balanceAfter = transactions.slice(0, index + 1).reduce((sum, item) => {
-                const delta = item.kind === "DEPOSIT" ? Number(item.amount) : -Number(item.amount);
-                return sum + delta;
-              }, 0);
-
-              return (
-                <div key={entry.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
-                  <div>{new Date(entry.created_at).toLocaleDateString()}</div>
-                  <div className={entry.kind === "DEPOSIT" ? "text-emerald font-semibold" : "text-red-600 font-semibold"}>{entry.kind}</div>
-                  <div>{entry.description || "No description"}</div>
-                  <div className={entry.kind === "DEPOSIT" ? "text-emerald font-semibold" : "text-red-600 font-semibold"}>{entry.kind === "DEPOSIT" ? "+" : "-"}{formatCurrency(entry.amount)}</div>
-                  <div className="font-semibold text-navy">{formatCurrency(balanceAfter)}</div>
-                </div>
-              );
-            })}
+      <div className="mt-8 overflow-x-auto rounded-3xl bg-white shadow-soft">
+        <div className="min-w-[760px]">
+          <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+            <div>Date</div>
+            <div>Type</div>
+            <div>Description</div>
+            <div>Amount</div>
+            <div>Balance</div>
           </div>
-        )}
+
+          {loading ? (
+            <div className="p-6 text-sm text-muted">Loading savings statement...</div>
+          ) : transactions.length === 0 ? (
+            <div className="p-6 text-sm text-muted">No savings movements yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {transactions.map((entry, index) => {
+                const balanceAfter = transactions.slice(0, index + 1).reduce((sum, item) => {
+                  const delta = item.kind === "DEPOSIT" ? Number(item.amount) : -Number(item.amount);
+                  return sum + delta;
+                }, 0);
+
+                return (
+                  <div key={entry.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
+                    <div>{new Date(entry.created_at).toLocaleDateString()}</div>
+                    <div className={entry.kind === "DEPOSIT" ? "text-emerald font-semibold" : "text-red-600 font-semibold"}>{entry.kind}</div>
+                    <div>{entry.description || "No description"}</div>
+                    <div className={entry.kind === "DEPOSIT" ? "text-emerald font-semibold" : "text-red-600 font-semibold"}>{entry.kind === "DEPOSIT" ? "+" : "-"}{formatCurrency(entry.amount)}</div>
+                    <div className="font-semibold text-navy">{formatCurrency(balanceAfter)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

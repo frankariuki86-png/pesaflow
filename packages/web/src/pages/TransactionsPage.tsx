@@ -362,36 +362,38 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-3xl bg-white shadow-soft">
-        <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-          <div>Date</div>
-          <div className="col-span-2">Description</div>
-          <div>Source</div>
-          <div className="text-right">Amount</div>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-sm text-muted">Loading transactions...</div>
-        ) : transactions.length === 0 ? (
-          <div className="p-6 text-sm text-muted">No transactions yet.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {transactions.map((transaction) => (
-              <div key={transaction.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
-                <div>{new Date(transaction.occurred_at).toLocaleDateString()}</div>
-                <div className="col-span-2">
-                  <p className="font-semibold">{transaction.description || "No description"}</p>
-                  <p className="text-xs text-muted">{transaction.category}</p>
-                </div>
-                <div>{transaction.source}</div>
-                <div className={`text-right font-semibold ${transaction.direction === "INCOME" ? "text-emerald" : "text-red-600"}`}>
-                  {transaction.direction === "INCOME" ? "+" : "-"}
-                  {formatCurrency(transaction.amount)}
-                </div>
-              </div>
-            ))}
+      <div className="overflow-x-auto rounded-3xl bg-white shadow-soft">
+        <div className="min-w-[720px]">
+          <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+            <div>Date</div>
+            <div className="col-span-2">Description</div>
+            <div>Source</div>
+            <div className="text-right">Amount</div>
           </div>
-        )}
+
+          {loading ? (
+            <div className="p-6 text-sm text-muted">Loading transactions...</div>
+          ) : transactions.length === 0 ? (
+            <div className="p-6 text-sm text-muted">No transactions yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {transactions.map((transaction) => (
+                <div key={transaction.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
+                  <div>{new Date(transaction.occurred_at).toLocaleDateString()}</div>
+                  <div className="col-span-2">
+                    <p className="font-semibold">{transaction.description || "No description"}</p>
+                    <p className="text-xs text-muted">{transaction.category}</p>
+                  </div>
+                  <div>{transaction.source}</div>
+                  <div className={`text-right font-semibold ${transaction.direction === "INCOME" ? "text-emerald" : "text-red-600"}`}>
+                    {transaction.direction === "INCOME" ? "+" : "-"}
+                    {formatCurrency(transaction.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

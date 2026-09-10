@@ -428,56 +428,58 @@ export default function GoalsPage() {
         </form>
       )}
 
-      <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-soft">
-        <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-          <div>Goal</div>
-          <div>Saved</div>
-          <div>Target</div>
-          <div>Progress</div>
-          <div>Status</div>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-sm text-muted">Loading goals...</div>
-        ) : goals.length === 0 ? (
-          <div className="p-6 text-sm text-muted">No goals yet.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {goals.map((goal) => {
-              const metrics = calculateGoalMetrics(goal);
-              const achievementPercent = metrics.achievement_percentage;
-              const currentStatus = goal.status || (goal.saved_amount >= goal.target_amount ? "ACHIEVED" : "ACTIVE");
-              const isClosed = currentStatus === "COMPLETED";
-              const completionPercent = metrics.completion_percentage;
-              const remainingBalance = Math.max(metrics.current_balance, 0);
-              return (
-                <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
-                  <div>
-                    <div className="font-semibold">{goal.name}</div>
-                    <div className="text-xs text-muted">{goal.target_date ? new Date(goal.target_date).toLocaleDateString() : "No deadline"}</div>
-                  </div>
-                  <div>{formatCurrency(goal.saved_amount)}</div>
-                  <div>{formatCurrency(goal.target_amount)}</div>
-                  <div>
-                    <div className="mb-1 text-xs text-muted">{achievementPercent.toFixed(0)}% achieved</div>
-                    <div className="h-2.5 rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(achievementPercent, 100)}%` }} />
-                    </div>
-                    {isClosed && <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700">{completionPercent}% complete</div>}
-                  </div>
-                  <div className="space-y-1">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isClosed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {currentStatus}
-                    </span>
-                    {isClosed && remainingBalance > 0 && (
-                      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Balance {formatCurrency(remainingBalance)}</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+      <div className="mt-8 overflow-x-auto rounded-3xl bg-white shadow-soft">
+        <div className="min-w-[760px]">
+          <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+            <div>Goal</div>
+            <div>Saved</div>
+            <div>Target</div>
+            <div>Progress</div>
+            <div>Status</div>
           </div>
-        )}
+
+          {loading ? (
+            <div className="p-6 text-sm text-muted">Loading goals...</div>
+          ) : goals.length === 0 ? (
+            <div className="p-6 text-sm text-muted">No goals yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {goals.map((goal) => {
+                const metrics = calculateGoalMetrics(goal);
+                const achievementPercent = metrics.achievement_percentage;
+                const currentStatus = goal.status || (goal.saved_amount >= goal.target_amount ? "ACHIEVED" : "ACTIVE");
+                const isClosed = currentStatus === "COMPLETED";
+                const completionPercent = metrics.completion_percentage;
+                const remainingBalance = Math.max(metrics.current_balance, 0);
+                return (
+                  <div key={goal.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
+                    <div>
+                      <div className="font-semibold">{goal.name}</div>
+                      <div className="text-xs text-muted">{goal.target_date ? new Date(goal.target_date).toLocaleDateString() : "No deadline"}</div>
+                    </div>
+                    <div>{formatCurrency(goal.saved_amount)}</div>
+                    <div>{formatCurrency(goal.target_amount)}</div>
+                    <div>
+                      <div className="mb-1 text-xs text-muted">{achievementPercent.toFixed(0)}% achieved</div>
+                      <div className="h-2.5 rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(achievementPercent, 100)}%` }} />
+                      </div>
+                      {isClosed && <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700">{completionPercent}% complete</div>}
+                    </div>
+                    <div className="space-y-1">
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${isClosed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {currentStatus}
+                      </span>
+                      {isClosed && remainingBalance > 0 && (
+                        <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Balance {formatCurrency(remainingBalance)}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

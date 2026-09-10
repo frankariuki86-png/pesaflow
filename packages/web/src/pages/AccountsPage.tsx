@@ -246,32 +246,34 @@ export default function AccountsPage() {
         </form>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-soft">
-        <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-          <div>Account</div>
-          <div>Type</div>
-          <div>Opening</div>
-          <div>Balance</div>
-          <div>Status</div>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-sm text-muted">Loading accounts...</div>
-        ) : accounts.length === 0 ? (
-          <div className="p-6 text-sm text-muted">No accounts yet.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {accounts.map((account) => (
-              <div key={account.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
-                <div className="font-semibold">{account.name}</div>
-                <div>{normalizeAccountType(account.type)}</div>
-                <div>{formatCurrency(account.opening_balance)}</div>
-                <div className="font-semibold text-navy">{formatCurrency(account.current_balance ?? account.opening_balance)}</div>
-                <div>{account.status}</div>
-              </div>
-            ))}
+      <div className="mt-8 overflow-x-auto rounded-3xl bg-white shadow-soft">
+        <div className="min-w-[720px]">
+          <div className="grid grid-cols-5 gap-4 border-b border-border px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+            <div>Account</div>
+            <div>Type</div>
+            <div>Opening</div>
+            <div>Balance</div>
+            <div>Status</div>
           </div>
-        )}
+
+          {loading ? (
+            <div className="p-6 text-sm text-muted">Loading accounts...</div>
+          ) : accounts.length === 0 ? (
+            <div className="p-6 text-sm text-muted">No accounts yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {accounts.map((account) => (
+                <div key={account.id} className="grid grid-cols-5 gap-4 px-6 py-4 text-sm text-text">
+                  <div className="font-semibold">{account.name}</div>
+                  <div>{normalizeAccountType(account.type)}</div>
+                  <div>{formatCurrency(account.opening_balance)}</div>
+                  <div className="font-semibold text-navy">{formatCurrency(account.current_balance ?? account.opening_balance)}</div>
+                  <div>{account.status}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
