@@ -13,6 +13,5 @@ coverage/
 packages/mobile/.expo/
 
 # editor files
-.vscode/
 .DS_Store
 config.bat

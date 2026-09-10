@@ -1,3 +1,4 @@
+import "react-native-url-polyfill/auto";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
