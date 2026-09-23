@@ -32,7 +32,7 @@ export default function BusinessScreen() {
     ]
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch(status) {
       case "good": return "#10B981";
       case "low": return "#F59E0B";

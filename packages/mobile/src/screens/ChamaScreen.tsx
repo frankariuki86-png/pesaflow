@@ -38,6 +38,7 @@ export default function ChamaScreen() {
     pending: "#F59E0B",
     approved: "#3B82F6"
   };
+  const getStatusColor = (status: string) => statusColors[status as keyof typeof statusColors] || "#667085";
 
   return (
     <View style={styles.container}>
@@ -87,8 +88,8 @@ export default function ChamaScreen() {
                   <Text style={styles.loanAmount}>KES {loan.amount.toLocaleString('en-KE')}</Text>
                   <Text style={styles.loanDate}>Borrowed {loan.borrowed}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: `${statusColors[loan.status]}20` }]}>
-                  <Text style={[styles.statusText, { color: statusColors[loan.status] }]}>
+                <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(loan.status)}20` }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(loan.status) }]}>
                     {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
                   </Text>
                 </View>
@@ -125,8 +126,8 @@ export default function ChamaScreen() {
             </View>
             <View style={styles.welfareRight}>
               <Text style={styles.welfareAmount}>KES {item.amount.toLocaleString('en-KE')}</Text>
-              <View style={[styles.welfareStatus, { backgroundColor: `${statusColors[item.status]}20` }]}>
-                <Text style={[styles.welfareStatusText, { color: statusColors[item.status] }]}>
+              <View style={[styles.welfareStatus, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
+                <Text style={[styles.welfareStatusText, { color: getStatusColor(item.status) }]}>
                   {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                 </Text>
               </View>

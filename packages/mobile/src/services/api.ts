@@ -1,6 +1,7 @@
 import axios from "axios";
+import { expoEnv } from "./env";
 
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:4000/api";
+const apiBaseUrl = expoEnv.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:4000/api";
 
 const api = axios.create({
   baseURL: apiBaseUrl,

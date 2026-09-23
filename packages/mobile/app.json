@@ -1,14 +1,17 @@
 {
   "expo": {
     "name": "pesaflow-mobile",
-    "slug": "pesaflow-mobile",
+    "slug": "pesaflow",
     "version": "1.0.0",
+    "android": {
+      "package": "com.pesaflow.mobile"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "extra": {
       "eas": {
-        "projectId": "1635c047-1088-466d-a996-237deb3ef74c"
+        "projectId": "745b6cdb-20cc-4a5a-bec0-65b1ee5aa9ad"
       }
     }
   }
