@@ -4,10 +4,6 @@ node_modules/
 packages/mobile/.expo
 
 # environment files
-.env
-.env.*
-**/.env
-**/.env.*
 !.env.example
 !**/.env.example
 

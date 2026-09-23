@@ -1,7 +1,5 @@
-type ExpoGlobal = typeof globalThis & {
-  process?: {
-    env?: Record<string, string | undefined>;
-  };
+export const expoEnv = {
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
 };
-
-export const expoEnv = (globalThis as ExpoGlobal).process?.env ?? {};
