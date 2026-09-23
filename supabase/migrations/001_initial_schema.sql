@@ -162,7 +162,7 @@ alter table public.notifications enable row level security;
 
 drop policy if exists "profiles_select_own_record" on public.profiles;
 drop policy if exists "profiles_insert_own_record" on public.profiles;
-drop policy if exists "profiles_update_own_record" on public.profiles;
+drop policy if exists "profiles_update_owfix the ui responsiveness and and also all the system error that in in this system to ensure it is ready for apk version 1.0.0 very readyn_record" on public.profiles;
 drop policy if exists "profiles_delete_own_record" on public.profiles;
 create policy "profiles_select_own_record" on public.profiles
 for select using (auth.uid() = id);
