@@ -14,6 +14,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { supabaseConfigError } from "./src/services/supabase";
 import { ActivityIndicator, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
 
@@ -66,7 +67,7 @@ function AuthenticatedApp() {
 
   return (
     <NavigationContainer>
-      <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: "#10B981", tabBarStyle: { height: 70, paddingBottom: 10, paddingTop: 8 } }}>
+      <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: "#10B981", tabBarHideOnKeyboard: true, tabBarShowLabel: false, tabBarStyle: { height: 64, paddingTop: 8, paddingBottom: 8 } }}>
         <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard" color={color} size={size} /> }} />
         <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="target" color={color} size={size} /> }} />
         <Tab.Screen name="Money" component={MoneyScreen} options={{ tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="currency-usd" color={color} size={size} /> }} />
@@ -80,5 +81,5 @@ function AuthenticatedApp() {
 }
 
 export default function App() {
-  return <ErrorBoundary><AuthProvider><AuthenticatedApp /></AuthProvider></ErrorBoundary>;
+  return <SafeAreaProvider><SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}><ErrorBoundary><AuthProvider><AuthenticatedApp /></AuthProvider></ErrorBoundary></SafeAreaView></SafeAreaProvider>;
 }

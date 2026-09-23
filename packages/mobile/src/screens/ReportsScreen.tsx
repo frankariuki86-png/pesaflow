@@ -52,6 +52,11 @@ export default function ReportsScreen() {
 
   const currentData = selectedTab === "personal" ? mockData.personal : selectedTab === "business" ? mockData.business : mockData.chama;
   const summaryLabel = selectedTab === "personal" ? "Net Savings" : selectedTab === "business" ? "Net Profit" : "Total Contributions";
+  const metrics = selectedTab === "personal"
+    ? { incomeLabel: "Income", income: mockData.personal.totalIncome, expenseLabel: "Expenses", expense: mockData.personal.totalExpense, summary: mockData.personal.netSavings, rate: mockData.personal.savingsRate }
+    : selectedTab === "business"
+      ? { incomeLabel: "Sales", income: mockData.business.totalSales, expenseLabel: "Expenses", expense: mockData.business.totalExpense, summary: mockData.business.netProfit, rate: mockData.business.profitMargin }
+      : { incomeLabel: "Contributions", income: mockData.chama.totalContributions, expenseLabel: "Loans", expense: mockData.chama.totalLoans, summary: mockData.chama.totalContributions, rate: 100 };
 
   return (
     <View style={styles.container}>
@@ -92,23 +97,23 @@ export default function ReportsScreen() {
         {/* Key Metrics */}
         <View style={styles.metricsGrid}>
           <View style={[styles.metricCard, { borderLeftColor: "#10B981" }]}>
-            <Text style={styles.metricCardLabel}>Income</Text>
-            <Text style={styles.metricCardValue}>KES {((selectedTab === "personal" || selectedTab === "business" ? (currentData as any).totalIncome || (currentData as any).totalSales : 0) / 1000).toFixed(1)}K</Text>
+            <Text style={styles.metricCardLabel}>{metrics.incomeLabel}</Text>
+            <Text style={styles.metricCardValue}>KES {(metrics.income / 1000).toFixed(1)}K</Text>
           </View>
           <View style={[styles.metricCard, { borderLeftColor: "#EF4444" }]}>
             <Text style={styles.metricCardLabel}>Expenses</Text>
-            <Text style={styles.metricCardValue}>KES {((currentData as any).totalExpense / 1000).toFixed(1)}K</Text>
+            <Text style={styles.metricCardValue}>KES {(metrics.expense / 1000).toFixed(1)}K</Text>
           </View>
           <View style={[styles.metricCard, { borderLeftColor: "#3B82F6" }]}>
             <Text style={styles.metricCardLabel}>{summaryLabel}</Text>
             <Text style={styles.metricCardValue}>
-              KES {((selectedTab === "personal" ? (currentData as any).netSavings : selectedTab === "business" ? (currentData as any).netProfit : (currentData as any).totalContributions) / 1000).toFixed(1)}K
+              KES {(metrics.summary / 1000).toFixed(1)}K
             </Text>
           </View>
           <View style={[styles.metricCard, { borderLeftColor: "#8B5CF6" }]}>
             <Text style={styles.metricCardLabel}>Rate</Text>
             <Text style={styles.metricCardValue}>
-              {selectedTab === "personal" ? mockData.personal.savingsRate : selectedTab === "business" ? mockData.business.profitMargin : 100}%
+              {metrics.rate}%
             </Text>
           </View>
         </View>

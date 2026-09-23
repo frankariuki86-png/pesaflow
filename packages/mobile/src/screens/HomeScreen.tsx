@@ -104,15 +104,15 @@ export default function HomeScreen() {
           <View style={styles.empty}><Text style={styles.emptyText}>No transactions yet.</Text></View>
         ) : transactions.map((transaction) => (
           <View key={transaction.id} style={styles.transaction}>
-            <View style={[styles.txIcon, { backgroundColor: transaction.direction === "INCOME" ? "#E0F9F0" : "#FEE2E2" }]}>
-              <MaterialCommunityIcons name={transaction.direction === "INCOME" ? "arrow-down" : "arrow-up"} color={transaction.direction === "INCOME" ? "#10B981" : "#EF4444"} size={20} />
+            <View style={[styles.txIcon, { backgroundColor: transaction.direction === "INCOME" ? "#E0F9F0" : transaction.direction === "TRANSFER" ? "#E0F2FE" : "#FEE2E2" }]}>
+              <MaterialCommunityIcons name={transaction.direction === "INCOME" ? "arrow-down" : transaction.direction === "TRANSFER" ? "swap-horizontal" : "arrow-up"} color={transaction.direction === "INCOME" ? "#10B981" : transaction.direction === "TRANSFER" ? "#0284C7" : "#EF4444"} size={20} />
             </View>
             <View style={styles.txInfo}>
               <Text style={styles.txDescription}>{transaction.description || "Manual entry"}</Text>
               <Text style={styles.txDate}>{transaction.category} • {new Date(transaction.occurred_at).toLocaleDateString()}</Text>
             </View>
-            <Text style={[styles.txAmount, { color: transaction.direction === "INCOME" ? "#10B981" : "#EF4444" }]}>
-              {transaction.direction === "INCOME" ? "+" : "-"}{formatCurrency(Number(transaction.amount))}
+            <Text style={[styles.txAmount, { color: transaction.direction === "INCOME" ? "#10B981" : transaction.direction === "TRANSFER" ? "#0284C7" : "#EF4444" }]}>
+              {transaction.direction === "INCOME" ? "+" : transaction.direction === "TRANSFER" ? "" : "-"}{formatCurrency(Number(transaction.amount))}
             </Text>
           </View>
         ))}
