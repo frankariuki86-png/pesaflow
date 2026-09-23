@@ -7,8 +7,8 @@
   ],
   "scripts": {
     "bootstrap": "npm install",
-    "dev": "concurrently \"npm --prefix packages/web run dev\" \"npm --prefix packages/mobile run start\"",
-    "build": "npm --prefix packages/web run build && npm --prefix packages/mobile run build",
+    "dev": "node init && concurrently \"npm --prefix packages/web run dev\" \"npm --prefix packages/mobile run start\"",
+    "build": "node init && npm --prefix packages/web run build && npm --prefix packages/mobile run build",
     "lint": "npx tsc --noEmit -p packages/web/tsconfig.json && npx tsc --noEmit -p packages/mobile/tsconfig.json",
     "test": "node --test scripts/goal-metrics.test.mjs"
   },
